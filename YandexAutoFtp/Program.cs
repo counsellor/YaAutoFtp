@@ -13,7 +13,7 @@ namespace YandexAutoFtp
         static void Main(string[] args)
         {
             var remoteDirectory = "/";
-            var dict = new Dictionary<string, object>();
+            var reports = new Dictionary<string, object>();
 
             using (var ftp = new FtpClient())
             {
@@ -21,48 +21,48 @@ namespace YandexAutoFtp
                 {
                     ftp.Connect();
 
-                    var files = ftp.GetListing(remoteDirectory);
+                    var ftpItems = ftp.GetListing(remoteDirectory);
                     var regex = new Regex(@"report_\w+_\d+_\d+.csv$");
 
-                    foreach (var item in files)
+                    foreach (var item in ftpItems)
                     {
                         if (item.Type == FtpFileSystemObjectType.File && regex.IsMatch(item.Name))
                         {
-                            dict.Add(item.Name, item);
+                            reports.Add(item.Name, item);
                         }
                     }
                 }
                 catch (Exception ex)
                 {
                     var mes = ex.Message;
-                    throw;
+                    Log.WriteStr(mes);
                 }
 
-                foreach (var item in dict)
+                /*foreach (var item in reports)
                 {
                     Console.WriteLine(item.Key);
-                }
+                }*/
 
-                string temp = "report_incoming_2017_12.csv";
-
-                foreach (var item in dict)
+                foreach (var item in reports)
                 {
                     var fileName = item.Key.Split(new char[] { '.' }).First();
                     var fileNameParts = fileName.Split(new char[] { '_' });
 
-                    var fileCreateDate = CustomParse(fileNameParts[2], fileNameParts[3]);
+                    var fileCreateDate = StringToMonthStartDate(fileNameParts[2], fileNameParts[3]);
+
                     //01.08.17 будут удалены отчеты за dd.01.17. Хранятся 6 месяцев
                     if (fileCreateDate != null && fileCreateDate <= DateTime.Today.AddMonths(-7))
                     {
                         ftp.DeleteFile(String.Format("{0}{1}", remoteDirectory, item.Key));
+                        Log.WriteStr(String.Format("УДАЛЕН ФАЙЛ: {0}{1}", remoteDirectory, item.Key));
                     }
                 }
                 
             }
-            Console.ReadKey();
+            //Console.ReadKey();
         }
 
-        static DateTime? CustomParse(string _year, string _mm)
+        static DateTime? StringToMonthStartDate(string _year, string _mm)
         {
             int year;
             int mm;
